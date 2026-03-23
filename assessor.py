@@ -3,7 +3,7 @@ import requests
 
 # ── Server configuration ──────────────────────────────────────────────────────
 # Change this to your Railway URL when deployed
-# e.g. "https://bayesian-truth-lens.up.railway.app"
+# e.g. "https://bayesian-truth-lens-production.up.railway.app"
 SERVER_URL = "http://localhost:8000"
 
 CLAIM_TYPE_LABELS = {
@@ -58,7 +58,8 @@ def assess_claim(claim_text: str, api_key: str = None, license_key: str = None) 
         # Add labels if not already present from server
         if "claim_type_label" not in result:
             result["claim_type_label"] = CLAIM_TYPE_LABELS.get(
-                result.get("claim_type", ""), result.get("claim_type", "Unknown")
+                result.get("claim_type", ""), result.get(
+                    "claim_type", "Unknown")
             )
         if "confidence_description" not in result:
             result["confidence_description"] = CONFIDENCE_DESCRIPTIONS.get(
