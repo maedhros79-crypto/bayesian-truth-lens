@@ -4,7 +4,7 @@ import requests
 # ── Server configuration ──────────────────────────────────────────────────────
 # Change this to your Railway URL when deployed
 # e.g. "https://bayesian-truth-lens-production.up.railway.app"
-SERVER_URL = "http://localhost:8000"
+SERVER_URL = "https://bayesian-truth-lens-production.up.railway.app"
 
 CLAIM_TYPE_LABELS = {
     "POLITICAL_BEHAVIORAL":        "Political / Behavioral",
