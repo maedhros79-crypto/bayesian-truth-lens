@@ -1,0 +1,4 @@
+,env
+licenses.db
+_pycache_/
+*.pyc
