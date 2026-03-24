@@ -1,7 +1,7 @@
 import os
 import json
 import anthropic
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -263,4 +263,106 @@ def create_license_endpoint(req: CreateLicenseRequest):
         "license_key": key,
         "email": req.email,
         "queries": req.queries
+    }
+
+# ── Email sending ─────────────────────────────────────────────────────────────
+
+def send_license_email(email: str, license_key: str, queries: int):
+    """Send license key email to new customer via Resend."""
+    import resend
+
+    resend.api_key = os.environ.get("RESEND_API_KEY", "")
+    if not resend.api_key:
+        print("WARNING: RESEND_API_KEY not set — skipping email")
+        return False
+
+    app_url = os.environ.get("APP_URL", "https://your-app.streamlit.app")
+
+    try:
+        resend.Emails.send({
+            "from": "Bayesian Truth Lens <onboarding@resend.dev>",
+            "to": email,
+            "subject": "Your Bayesian Truth Lens License Key",
+            "html": f"""
+<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <h2 style="color: #333;">Your Bayesian Truth Lens License Key</h2>
+    <p>Thank you for your purchase. Here is your license key:</p>
+    <div style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; 
+                padding: 16px; font-family: monospace; font-size: 1.2em; 
+                text-align: center; letter-spacing: 2px; margin: 24px 0;">
+        {license_key}
+    </div>
+    <p>This key includes <strong>{queries} queries</strong>.</p>
+    <p>To get started:</p>
+    <ol>
+        <li>Go to <a href="{app_url}">{app_url}</a></li>
+        <li>Enter your license key in the License Key field</li>
+        <li>Type any claim and hit Assess</li>
+    </ol>
+    <p style="margin-top: 32px; color: #666; font-size: 0.9em;">
+        This tool is a thinking aid, not an oracle. 
+        The judgment is always yours.<br><br>
+        Keep this email — your license key is not stored anywhere else.
+    </p>
+</div>
+            """
+        })
+        return True
+    except Exception as e:
+        print(f"Email send failed: {e}")
+        return False
+
+
+# ── Gumroad webhook ───────────────────────────────────────────────────────────
+
+class GumroadWebhook(BaseModel):
+    seller_id: str = ""
+    product_id: str = ""
+    product_name: str = ""
+    email: str = ""
+    price: int = 0
+    sale_id: str = ""
+    sale_timestamp: str = ""
+    # Gumroad sends many fields — we only need a few
+
+
+@app.post("/webhook/gumroad")
+async def gumroad_webhook(request: Request):
+    """
+    Receives purchase notifications from Gumroad.
+    Creates a license key and emails it to the buyer automatically.
+    """
+    from database import create_license
+
+    # Gumroad sends form data not JSON
+    form_data = await request.form()
+    email = form_data.get("email", "")
+    product_name = form_data.get("product_name", "")
+    sale_id = form_data.get("sale_id", "")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="No email in webhook")
+
+    # Determine query allocation based on product
+    # Adjust these based on your Gumroad product names
+    if "credit" in product_name.lower() or "pack" in product_name.lower():
+        queries = 300  # credit pack purchase
+    else:
+        queries = 300  # standard app purchase — adjust as needed
+
+    # Create license key
+    key = create_license(email=email, queries=queries)
+
+    # Send email
+    email_sent = send_license_email(email, key, queries)
+
+    # Log the sale
+    print(f"Sale processed: {sale_id} | {email} | {queries} queries | email_sent={email_sent}")
+
+    return {
+        "success": True,
+        "license_key": key,
+        "email": email,
+        "queries": queries,
+        "email_sent": email_sent
     }
