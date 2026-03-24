@@ -100,6 +100,15 @@ with st.expander("⚙️ License Key", expanded=not st.session_state.get("licens
         st.session_state["license_key"] = license_key_input.strip()
         st.success("License key set.")
 
+# ── Plain language toggle ────────────────────────────────────────────────────
+
+plain_language = st.toggle(
+    "Plain language mode",
+    value=False,
+    help="Simpler explanations — less jargon, more concrete examples. Same depth, more accessible."
+)
+st.session_state["plain_language"] = plain_language
+
 # ── Claim input ───────────────────────────────────────────────────────────────
 
 claim = st.text_area(
@@ -115,7 +124,6 @@ claim = st.text_area(
 run = st.button("Assess", type="primary", disabled=not claim.strip())
 
 # ── Helper: fire a followup question immediately ──────────────────────────────
-
 
 def fire_followup(question: str):
     """Send a followup question immediately and store result in session."""
@@ -143,7 +151,6 @@ def fire_followup(question: str):
 
 # ── Assessment output ─────────────────────────────────────────────────────────
 
-
 if run:
     license_key = st.session_state.get("license_key", "")
     if not license_key:
@@ -151,7 +158,11 @@ if run:
         st.stop()
 
     with st.spinner("Assessing..."):
-        result = assess_claim(claim.strip(), license_key=license_key)
+        result = assess_claim(
+            claim.strip(),
+            license_key=license_key,
+            plain_language=st.session_state.get("plain_language", False)
+        )
 
     if "error" in result:
         st.error(result["error"])
@@ -168,72 +179,61 @@ if run:
 
     st.divider()
 
-    st.markdown('<div class="section-label">Claim Type</div>',
-                unsafe_allow_html=True)
-    st.markdown(
-        f"**{result.get('claim_type_label', 'Unknown')}** — {result.get('claim_type_explanation', '')}")
+    st.markdown('<div class="section-label">Claim Type</div>', unsafe_allow_html=True)
+    st.markdown(f"**{result.get('claim_type_label', 'Unknown')}** — {result.get('claim_type_explanation', '')}")
     st.markdown("<br>", unsafe_allow_html=True)
 
     tier = result.get("confidence_tier", "MEDIUM")
-    st.markdown('<div class="section-label">Confidence</div>',
-                unsafe_allow_html=True)
-    st.markdown(
-        f'<span class="tier-{tier}">{tier}</span>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Confidence</div>', unsafe_allow_html=True)
+    st.markdown(f'<span class="tier-{tier}">{tier}</span>', unsafe_allow_html=True)
     st.markdown(f"*{result.get('confidence_description', '')}*")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown('<div class="section-label">Reasoning</div>',
-                unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Reasoning</div>', unsafe_allow_html=True)
     st.write(result.get("confidence_reasoning", ""))
     st.markdown("<br>", unsafe_allow_html=True)
 
     kernel = result.get("kernel_of_truth")
     if kernel:
-        st.markdown(
-            '<div class="section-label">What This Claim Gets Right</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="kernel-box">{kernel}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">What This Claim Gets Right</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kernel-box">{kernel}</div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
     defection = result.get("clever_defection_flag")
     if defection:
-        st.markdown(
-            '<div class="section-label">⚠ Clever Defection Flag</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="flag-box">{defection}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">⚠ Clever Defection Flag</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="flag-box">{defection}</div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
     moral_arc = result.get("moral_arc")
     if moral_arc:
-        st.markdown('<div class="section-label">Moral Arc</div>',
-                    unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="kernel-box">{moral_arc}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Moral Arc</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kernel-box">{moral_arc}</div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    evaluative_map = result.get("evaluative_map")
+    if evaluative_map:
+        st.markdown('<div class="section-label">Territory This Question Opens</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kernel-box">{evaluative_map}</div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
     subclaims = result.get("subclaim_decomposition")
     if subclaims:
-        st.markdown(
-            '<div class="section-label">Subclaim Breakdown</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="kernel-box">{subclaims}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Subclaim Breakdown</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kernel-box">{subclaims}</div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
     shared_ground = result.get("shared_ground")
     if shared_ground:
-        st.markdown('<div class="section-label">Shared Ground</div>',
-                    unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="shift-box">{shared_ground}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Shared Ground</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="shift-box">{shared_ground}</div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
     assumptions = result.get("key_assumptions", [])
     if assumptions:
-        st.markdown(
-            '<div class="section-label">This Assessment Assumes</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">This Assessment Assumes</div>', unsafe_allow_html=True)
         for a in assumptions:
-            st.markdown(
-                f'<div class="assumption-item">→ {a}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="assumption-item">→ {a}</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
     evidence_avail = result.get("evidence_availability", "")
@@ -245,8 +245,7 @@ if run:
             "ABSENT":    "Evidence — Research Lead",
         }
         label = label_map.get(evidence_avail, "Evidence")
-        st.markdown(
-            f'<div class="section-label">{label}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-label">{label}</div>', unsafe_allow_html=True)
         if evidence_avail == "ABSENT":
             st.info(f"🔍 {evidence_note}")
         else:
@@ -255,18 +254,14 @@ if run:
 
     shift = result.get("confidence_shift_note")
     if shift:
-        st.markdown(
-            '<div class="section-label">What Would Change This Assessment</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="shift-box">{shift}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">What Would Change This Assessment</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="shift-box">{shift}</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
     socratic = result.get("socratic_question")
     if socratic:
-        st.markdown(
-            '<div class="section-label">A Question Worth Sitting With</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="socratic">{socratic}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">A Question Worth Sitting With</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="socratic">{socratic}</div>', unsafe_allow_html=True)
 
     st.markdown(
         '<div class="disclaimer">'
@@ -281,8 +276,7 @@ if run:
 
 if st.session_state.get("current_result"):
     st.divider()
-    st.markdown('<div class="section-label">Go Deeper</div>',
-                unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Go Deeper</div>', unsafe_allow_html=True)
     st.markdown(
         "Ask focused questions about this assessment. "
         "Request research leads, sources, counter-arguments, or clarification on assumptions."
@@ -296,10 +290,9 @@ if st.session_state.get("current_result"):
     history = st.session_state.get("followup_history", [])
     for msg in history:
         if msg["role"] == "user":
-            st.markdown(
-                f'<div class="chat-user">You: {msg["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chat-user">You: {msg["content"]}</div>', unsafe_allow_html=True)
         else:
-            st.write(msg["content"])
+            st.markdown(f'<div class="chat-assistant">{msg["content"]}</div>', unsafe_allow_html=True)
 
     # Contextual straw man button — appears after a steelman response
     if history:
@@ -307,8 +300,7 @@ if st.session_state.get("current_result"):
         if last_assistant_msgs:
             last_response = last_assistant_msgs[-1]["content"].lower()
             last_user_msgs = [m for m in history if m["role"] == "user"]
-            last_question = last_user_msgs[-1]["content"].lower(
-            ) if last_user_msgs else ""
+            last_question = last_user_msgs[-1]["content"].lower() if last_user_msgs else ""
             is_steelman = (
                 "steelman" in last_question or
                 "counter-argument" in last_question or
@@ -332,19 +324,16 @@ if st.session_state.get("current_result"):
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Best sources on this"):
-                fire_followup(
-                    "What are the best sources to read on this claim — both supporting and opposing? Include author names, publication names, and why each is credible.")
+                fire_followup("What are the best sources to read on this claim — both supporting and opposing? Include author names, publication names, and why each is credible.")
                 st.rerun()
         with col2:
             if st.button("Strongest counter-argument"):
-                fire_followup(
-                    "What is the strongest counter-argument to this assessment? Steelman the opposing view as clearly as possible.")
+                fire_followup("What is the strongest counter-argument to this assessment? Steelman the opposing view as clearly as possible.")
                 st.rerun()
         col3, col4 = st.columns(2)
         with col3:
             if st.button("Where to research this"):
-                fire_followup(
-                    "Where would I go to research this claim further? Name specific search terms, databases, institutions, or researchers I should look into.")
+                fire_followup("Where would I go to research this claim further? Name specific search terms, databases, institutions, or researchers I should look into.")
                 st.rerun()
         with col4:
             if st.button("Show straw man versions"):

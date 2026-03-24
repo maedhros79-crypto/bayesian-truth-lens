@@ -50,6 +50,7 @@ CONFIDENCE_DESCRIPTIONS = {
 class AssessRequest(BaseModel):
     license_key: str
     claim: str
+    plain_language: bool = False
 
 class FollowupMessage(BaseModel):
     role: str
@@ -117,12 +118,30 @@ def assess(req: AssessRequest):
             detail="No queries remaining. Purchase more at bayesiantruth.lens/credits"
         )
 
+    # Build system prompt — add plain language modifier if requested
+    system = SYSTEM_PROMPT
+    if req.plain_language:
+        system += """
+
+PLAIN LANGUAGE MODE — ACTIVE:
+The user has requested simpler explanations. Apply these rules to your entire response:
+- Replace all technical philosophical terms with everyday equivalents
+  Examples: "ontological" → "about what exists", "empirically underdetermined" → 
+  "we don't have enough evidence yet", "heuristic" → "mental shortcut"
+- Use concrete real-world examples instead of abstract descriptions
+- Keep sentences shorter — aim for one idea per sentence
+- If you must use a technical term, define it immediately in plain language
+- Write as if explaining to a curious and intelligent person who hasn't studied philosophy
+- Same depth and nuance — just more accessible vocabulary
+- Analogies and comparisons are encouraged
+"""
+
     # Call Anthropic
     try:
         response = client.messages.create(
             model="claude-opus-4-6",
             max_tokens=2000,
-            system=SYSTEM_PROMPT,
+            system=system,
             messages=[
                 {
                     "role": "user",

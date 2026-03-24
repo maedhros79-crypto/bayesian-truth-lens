@@ -3,8 +3,8 @@ import requests
 
 # ── Server configuration ──────────────────────────────────────────────────────
 # Change this to your Railway URL when deployed
-# e.g. "https://bayesian-truth-lens-production.up.railway.app"
-SERVER_URL = "https://bayesian-truth-lens-production.up.railway.app"
+# e.g. "https://bayesian-truth-lens.up.railway.app"
+SERVER_URL = "http://localhost:8000"
 
 CLAIM_TYPE_LABELS = {
     "POLITICAL_BEHAVIORAL":        "Political / Behavioral",
@@ -25,11 +25,12 @@ CONFIDENCE_DESCRIPTIONS = {
 }
 
 
-def assess_claim(claim_text: str, api_key: str = None, license_key: str = None) -> dict:
+def assess_claim(claim_text: str, api_key: str = None, license_key: str = None, plain_language: bool = False) -> dict:
     """
     Send a claim to the backend server for assessment.
     api_key parameter kept for interface compatibility but not used.
     license_key is used for server authentication.
+    plain_language flag requests simpler output vocabulary.
     """
     key = license_key or api_key or ""
 
@@ -38,7 +39,8 @@ def assess_claim(claim_text: str, api_key: str = None, license_key: str = None) 
             f"{SERVER_URL}/assess",
             json={
                 "license_key": key,
-                "claim": claim_text
+                "claim": claim_text,
+                "plain_language": plain_language
             },
             timeout=120
         )
@@ -58,8 +60,7 @@ def assess_claim(claim_text: str, api_key: str = None, license_key: str = None) 
         # Add labels if not already present from server
         if "claim_type_label" not in result:
             result["claim_type_label"] = CLAIM_TYPE_LABELS.get(
-                result.get("claim_type", ""), result.get(
-                    "claim_type", "Unknown")
+                result.get("claim_type", ""), result.get("claim_type", "Unknown")
             )
         if "confidence_description" not in result:
             result["confidence_description"] = CONFIDENCE_DESCRIPTIONS.get(
