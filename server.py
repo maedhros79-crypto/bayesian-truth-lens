@@ -149,7 +149,8 @@ def health():
     return {
         "status": "ok",
         "service": "Bayesian Truth Lens API",
-        "tavily_configured": bool(os.environ.get("TAVILY_API_KEY", ""))
+        "tavily_configured": bool(os.environ.get("TAVILY_API_KEY", "")),
+        "resend_configured": bool(os.environ.get("RESEND_API_KEY", ""))
     }
 
 # ── License status ────────────────────────────────────────────────────────────
