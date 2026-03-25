@@ -18,7 +18,8 @@ def search_web(query: str, max_results: int = 5) -> str:
     Search the web using Tavily and return formatted results.
     Returns empty string if Tavily key not configured.
     """
-    tavily_key = os.environ.get("TAVILY_API_KEY", "")
+    tavily_key = os.environ.get(
+        "TAVILY_API_KEY", "") or "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"
     if not tavily_key:
         print("WARNING: TAVILY_API_KEY not set — skipping web search")
         return ""
