@@ -19,8 +19,10 @@ def search_web(query: str, max_results: int = 5) -> str:
     """
     tavily_key = os.environ.get("TAVILY_API_KEY", "")
     if not tavily_key:
+        print("WARNING: TAVILY_API_KEY not set — skipping web search")
         return ""
 
+    print(f"INFO: Running Tavily search for: {query[:80]}")
     try:
         from tavily import TavilyClient
         client = TavilyClient(api_key=tavily_key)
@@ -33,6 +35,7 @@ def search_web(query: str, max_results: int = 5) -> str:
         if not results:
             return ""
 
+        print(f"INFO: Tavily returned {len(results)} results")
         formatted = "CURRENT WEB SEARCH RESULTS (use these to supplement your assessment):\n\n"
         for i, r in enumerate(results, 1):
             formatted += f"Source {i}: {r.get('title', 'Unknown')}\n"
@@ -171,7 +174,12 @@ def assess(req: AssessRequest):
     # ── Web search for temporally sensitive claims ───────────────────────────
     web_context = ""
     if is_temporally_sensitive(req.claim):
+        print(f"INFO: Temporal sensitivity detected for claim: {req.claim[:80]}")
         web_context = search_web(req.claim)
+        if web_context:
+            print("INFO: Web context injected into assessment")
+        else:
+            print("WARNING: Temporal claim detected but web search returned empty")
 
     # Build system prompt — add plain language modifier if requested
     system = SYSTEM_PROMPT

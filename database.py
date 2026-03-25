@@ -4,7 +4,10 @@ import string
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "licenses.db"
+# Use /data for Railway persistent volume, fall back to local for development
+import os
+_data_dir = Path("/data") if Path("/data").exists() else Path(__file__).parent
+DB_PATH = _data_dir / "licenses.db"
 
 
 def get_connection():
