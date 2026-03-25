@@ -12,6 +12,7 @@ from followup import FOLLOWUP_SYSTEM, build_context_header
 
 # ── Web search setup ──────────────────────────────────────────────────────────
 
+
 def search_web(query: str, max_results: int = 5) -> str:
     """
     Search the web using Tavily and return formatted results.
@@ -65,6 +66,7 @@ def is_temporally_sensitive(claim: str) -> bool:
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
+
 app = FastAPI(title="Bayesian Truth Lens API")
 
 # Allow requests from any frontend origin during development
@@ -100,14 +102,17 @@ CONFIDENCE_DESCRIPTIONS = {
 
 # ── Request / Response models ─────────────────────────────────────────────────
 
+
 class AssessRequest(BaseModel):
     license_key: str
     claim: str
     plain_language: bool = False
 
+
 class FollowupMessage(BaseModel):
     role: str
     content: str
+
 
 class FollowupRequest(BaseModel):
     license_key: str
@@ -116,9 +121,11 @@ class FollowupRequest(BaseModel):
     history: list[FollowupMessage]
     message: str
 
+
 class RedeemRequest(BaseModel):
     license_key: str
     redeem_code: str
+
 
 class CreateLicenseRequest(BaseModel):
     admin_secret: str
@@ -126,6 +133,7 @@ class CreateLicenseRequest(BaseModel):
     queries: int = 300
 
 # ── Startup ───────────────────────────────────────────────────────────────────
+
 
 @app.on_event("startup")
 def startup():
@@ -135,11 +143,17 @@ def startup():
 
 # ── Health check ──────────────────────────────────────────────────────────────
 
+
 @app.get("/")
 def health():
-    return {"status": "ok", "service": "Bayesian Truth Lens API"}
+    return {
+        "status": "ok",
+        "service": "Bayesian Truth Lens API",
+        "tavily_configured": bool(os.environ.get("TAVILY_API_KEY", ""))
+    }
 
 # ── License status ────────────────────────────────────────────────────────────
+
 
 @app.get("/status/{license_key}")
 def license_status(license_key: str):
@@ -154,6 +168,7 @@ def license_status(license_key: str):
     }
 
 # ── Assess endpoint ───────────────────────────────────────────────────────────
+
 
 @app.post("/assess")
 def assess(req: AssessRequest):
@@ -174,7 +189,8 @@ def assess(req: AssessRequest):
     # ── Web search for temporally sensitive claims ───────────────────────────
     web_context = ""
     if is_temporally_sensitive(req.claim):
-        print(f"INFO: Temporal sensitivity detected for claim: {req.claim[:80]}")
+        print(
+            f"INFO: Temporal sensitivity detected for claim: {req.claim[:80]}")
         web_context = search_web(req.claim)
         if web_context:
             print("INFO: Web context injected into assessment")
@@ -228,9 +244,11 @@ The user has requested simpler explanations. Apply these rules to your entire re
     except anthropic.AuthenticationError:
         raise HTTPException(status_code=500, detail="API configuration error")
     except anthropic.RateLimitError:
-        raise HTTPException(status_code=429, detail="Rate limit reached. Please try again shortly.")
+        raise HTTPException(
+            status_code=429, detail="Rate limit reached. Please try again shortly.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Assessment failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Assessment failed: {str(e)}")
 
     # Parse response
     raw_text = response.content[0].text.strip()
@@ -278,6 +296,7 @@ The user has requested simpler explanations. Apply these rules to your entire re
 
 # ── Follow-up endpoint ────────────────────────────────────────────────────────
 
+
 @app.post("/followup")
 def followup(req: FollowupRequest):
     """
@@ -310,9 +329,11 @@ def followup(req: FollowupRequest):
             messages=messages
         )
     except anthropic.RateLimitError:
-        raise HTTPException(status_code=429, detail="Rate limit reached. Please try again shortly.")
+        raise HTTPException(
+            status_code=429, detail="Rate limit reached. Please try again shortly.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Follow-up failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Follow-up failed: {str(e)}")
 
     try:
         queries_remaining = decrement_queries(req.license_key)
@@ -325,6 +346,7 @@ def followup(req: FollowupRequest):
     }
 
 # ── Redeem endpoint ───────────────────────────────────────────────────────────
+
 
 @app.post("/redeem")
 def redeem(req: RedeemRequest):
@@ -345,6 +367,7 @@ def redeem(req: RedeemRequest):
 
 # ── Admin: create license ─────────────────────────────────────────────────────
 
+
 @app.post("/admin/create-license")
 def create_license_endpoint(req: CreateLicenseRequest):
     """
@@ -364,6 +387,7 @@ def create_license_endpoint(req: CreateLicenseRequest):
     }
 
 # ── Email sending ─────────────────────────────────────────────────────────────
+
 
 def send_license_email(email: str, license_key: str, queries: int):
     """Send license key email to new customer via Resend."""
@@ -455,7 +479,8 @@ async def gumroad_webhook(request: Request):
     email_sent = send_license_email(email, key, queries)
 
     # Log the sale
-    print(f"Sale processed: {sale_id} | {email} | {queries} queries | email_sent={email_sent}")
+    print(
+        f"Sale processed: {sale_id} | {email} | {queries} queries | email_sent={email_sent}")
 
     return {
         "success": True,
