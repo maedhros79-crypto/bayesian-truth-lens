@@ -10,6 +10,56 @@ from database import init_db, get_license, decrement_queries, redeem_code
 from prompts import SYSTEM_PROMPT
 from followup import FOLLOWUP_SYSTEM, build_context_header
 
+# ── Web search setup ──────────────────────────────────────────────────────────
+
+def search_web(query: str, max_results: int = 5) -> str:
+    """
+    Search the web using Tavily and return formatted results.
+    Returns empty string if Tavily key not configured.
+    """
+    tavily_key = os.environ.get("TAVILY_API_KEY", "")
+    if not tavily_key:
+        return ""
+
+    try:
+        from tavily import TavilyClient
+        client = TavilyClient(api_key=tavily_key)
+        response = client.search(
+            query=query,
+            search_depth="basic",
+            max_results=max_results
+        )
+        results = response.get("results", [])
+        if not results:
+            return ""
+
+        formatted = "CURRENT WEB SEARCH RESULTS (use these to supplement your assessment):\n\n"
+        for i, r in enumerate(results, 1):
+            formatted += f"Source {i}: {r.get('title', 'Unknown')}\n"
+            formatted += f"URL: {r.get('url', '')}\n"
+            formatted += f"Content: {r.get('content', '')[:500]}\n\n"
+        return formatted
+
+    except Exception as e:
+        print(f"Tavily search failed: {e}")
+        return ""
+
+
+def is_temporally_sensitive(claim: str) -> bool:
+    """
+    Quick heuristic check for temporal sensitivity before sending to model.
+    Catches obvious cases to trigger web search proactively.
+    """
+    temporal_keywords = [
+        "2024", "2025", "2026", "current", "currently", "now", "today",
+        "recent", "recently", "latest", "ongoing", "this year", "last year",
+        "this month", "right now", "at the moment", "as of", "war", "conflict",
+        "election", "president", "prime minister", "crisis", "invasion",
+        "attack", "ceasefire", "treaty", "sanctions", "breaking"
+    ]
+    claim_lower = claim.lower()
+    return any(keyword in claim_lower for keyword in temporal_keywords)
+
 # ── App setup ─────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="Bayesian Truth Lens API")
@@ -118,8 +168,26 @@ def assess(req: AssessRequest):
             detail="No queries remaining. Purchase more at bayesiantruth.lens/credits"
         )
 
+    # ── Web search for temporally sensitive claims ───────────────────────────
+    web_context = ""
+    if is_temporally_sensitive(req.claim):
+        web_context = search_web(req.claim)
+
     # Build system prompt — add plain language modifier if requested
     system = SYSTEM_PROMPT
+
+    # Inject web search results if available
+    if web_context:
+        system += f"""
+
+{web_context}
+
+Use the above search results to supplement your assessment where relevant.
+Cite specific sources when drawing on them. Note if search results are recent
+enough to update your confidence tier or change your assessment meaningfully.
+Always flag if the search results themselves appear biased or incomplete.
+"""
+
     if req.plain_language:
         system += """
 
@@ -187,6 +255,9 @@ The user has requested simpler explanations. Apply these rules to your entire re
     parsed["confidence_description"] = CONFIDENCE_DESCRIPTIONS.get(
         parsed.get("confidence_tier", ""), ""
     )
+
+    # Flag whether web search was used
+    parsed["web_search_used"] = bool(web_context)
 
     # Decrement query count AFTER successful assessment
     try:

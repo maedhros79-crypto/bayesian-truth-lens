@@ -189,6 +189,22 @@ if run:
     st.markdown(f"*{result.get('confidence_description', '')}*")
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ── Web search indicator ──
+    if result.get("web_search_used"):
+        st.info("🔍 **Web search used** — Current information was retrieved to supplement this assessment.")
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Temporal flag ──
+    temporal_flag = result.get("temporal_flag")
+    temporal_note = result.get("temporal_note")
+    if str(temporal_flag).lower() == "true" and temporal_note:
+        st.warning(
+            f"⏱ **Temporal Limitation** — This claim involves recent or ongoing events "
+            f"that may postdate the model's training data (approximately early 2024). "
+            f"{temporal_note}"
+        )
+        st.markdown("<br>", unsafe_allow_html=True)
+
     st.markdown('<div class="section-label">Reasoning</div>', unsafe_allow_html=True)
     st.write(result.get("confidence_reasoning", ""))
     st.markdown("<br>", unsafe_allow_html=True)
