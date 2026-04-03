@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reality Calibration Platform</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0c;
+    color: #d4d4d8;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #e4e4e7;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: #71717a;
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #27272a;
+    margin-bottom: 24px;
+  }
+
+  .tab {
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 13px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #71717a;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .tab:hover { color: #a1a1aa; }
+  .tab.active { color: #e4e4e7; border-bottom-color: #a1a1aa; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Form elements */
+  .input-section {
+    margin-bottom: 24px;
+  }
+
+  .input-section label {
+    display: block;
+    color: #a1a1aa;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  input[type="text"], textarea {
+    flex: 1;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #e4e4e7;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus, textarea:focus {
+    border-color: #52525b;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    resize: vertical;
+    margin-bottom: 8px;
+  }
+
+  button {
+    background: #27272a;
+    color: #d4d4d8;
+    border: 1px solid #3f3f46;
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  button:hover { background: #3f3f46; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-small {
+    padding: 4px 12px;
+    font-size: 11px;
+  }
+
+  .btn-green { border-color: #166534; color: #4ade80; }
+  .btn-green:hover { background: #052e16; }
+
+  .btn-red { border-color: #7f1d1d; color: #f87171; }
+  .btn-red:hover { background: #2a0a0a; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #1e1e22;
+    margin: 24px 0;
+  }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 32px;
+    color: #71717a;
+    display: none;
+  }
+
+  .loading.visible { display: block; }
+
+  .loading .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #3f3f46;
+    border-top-color: #a1a1aa;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Result cards */
+  .results { display: flex; flex-direction: column; gap: 12px; }
+
+  .card {
+    background: #141416;
+    border: 1px solid #1e1e22;
+    border-radius: 6px;
+    padding: 16px;
+    border-left: 3px solid #3f3f46;
+  }
+
+  .card.pass { border-left-color: #4ade80; }
+  .card.watch { border-left-color: #fbbf24; }
+  .card.skip { border-left-color: #f87171; }
+  .card.error { border-left-color: #71717a; }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e4e4e7;
+    flex: 1;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .badge.pass { background: #052e16; color: #4ade80; }
+  .badge.watch { background: #2a1f00; color: #fbbf24; }
+  .badge.skip { background: #2a0a0a; color: #f87171; }
+
+  .verdict-reason {
+    color: #a1a1aa;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .card-url {
+    font-size: 11px;
+    color: #52525b;
+    word-break: break-all;
+    margin-bottom: 8px;
+  }
+
+  .card-url a { color: #52525b; text-decoration: none; }
+  .card-url a:hover { color: #a1a1aa; }
+
+  .signals-toggle {
+    font-size: 12px;
+    color: #71717a;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 0;
+  }
+
+  .signals-toggle:hover { color: #a1a1aa; }
+
+  .signals {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #1e1e22;
+  }
+
+  .signals.open { display: block; }
+
+  .signal { margin-bottom: 12px; }
+  .signal:last-child { margin-bottom: 0; }
+
+  .signal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .signal-name {
+    font-size: 12px;
+    color: #a1a1aa;
+    font-weight: 600;
+  }
+
+  .tier {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+
+  .tier.high { background: #052e16; color: #4ade80; }
+  .tier.medium { background: #2a1f00; color: #fbbf24; }
+  .tier.low { background: #2a0a0a; color: #f87171; }
+
+  .signal-reason {
+    font-size: 12px;
+    color: #71717a;
+    padding-left: 4px;
+  }
+
+  .error-msg {
+    color: #f87171;
+    font-size: 13px;
+  }
+
+  /* Card actions bar */
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #1e1e22;
+    flex-wrap: wrap;
+  }
+
+  /* Reputation badge */
+  .reputation-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-left: 6px;
+  }
+
+  .reputation-badge.high { background: #052e16; color: #4ade80; }
+  .reputation-badge.medium { background: #2a1f00; color: #fbbf24; }
+  .reputation-badge.low { background: #2a0a0a; color: #f87171; }
+
+  .reputation-note {
+    font-size: 11px;
+    color: #a78bfa;
+    font-style: italic;
+    margin-top: 4px;
+  }
+
+  /* Skills due cards */
+  .skill-card {
+    background: #141416;
+    border: 1px solid #1e1e22;
+    border-radius: 6px;
+    padding: 16px;
+    border-left: 3px solid #818cf8;
+    margin-bottom: 12px;
+  }
+
+  .skill-card .skill-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e4e4e7;
+  }
+
+  .skill-card .skill-meta {
+    font-size: 12px;
+    color: #71717a;
+    margin-top: 4px;
+  }
+
+  .skill-card .skill-notes {
+    font-size: 12px;
+    color: #a1a1aa;
+    margin-top: 8px;
+    padding: 8px;
+    background: #18181b;
+    border-radius: 4px;
+  }
+
+  .overdue { color: #f87171; font-weight: 600; }
+
+  /* Trend card */
+  .trend-card {
+    background: #141416;
+    border: 1px solid #1e1e22;
+    border-radius: 6px;
+    padding: 20px;
+  }
+
+  .trend-card h3 {
+    font-size: 16px;
+    color: #e4e4e7;
+    margin-bottom: 12px;
+  }
+
+  .trend-row {
+    margin-bottom: 12px;
+  }
+
+  .trend-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #71717a;
+    margin-bottom: 4px;
+  }
+
+  .trend-value {
+    font-size: 13px;
+    color: #d4d4d8;
+  }
+
+  .concern-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 3px;
+    margin-right: 8px;
+  }
+
+  .concern-badge.well-founded { background: #052e16; color: #4ade80; }
+  .concern-badge.mixed { background: #2a1f00; color: #fbbf24; }
+  .concern-badge.overblown { background: #2a0a0a; color: #f87171; }
+  .concern-badge.amplified { background: #1e1b4b; color: #a78bfa; }
+
+  /* Rating feedback */
+  .rate-feedback {
+    font-size: 11px;
+    color: #4ade80;
+    margin-top: 4px;
+    display: none;
+  }
+
+  /* Skill tag modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.visible {
+    display: flex;
+  }
+
+  .modal {
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    padding: 24px;
+    width: 400px;
+    max-width: 90vw;
+  }
+
+  .modal h3 {
+    font-size: 14px;
+    color: #e4e4e7;
+    margin-bottom: 16px;
+  }
+
+  .modal .field {
+    margin-bottom: 12px;
+  }
+
+  .modal .field label {
+    display: block;
+    font-size: 11px;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .modal .field input, .modal .field select {
+    width: 100%;
+    background: #0a0a0c;
+    border: 1px solid #27272a;
+    color: #e4e4e7;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  .modal .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .toggle-row label {
+    font-size: 12px;
+    color: #a1a1aa;
+    cursor: pointer;
+  }
+
+  input[type="checkbox"] {
+    accent-color: #4ade80;
+  }
+
+  .disclaimer {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #1e1e22;
+    color: #52525b;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #52525b;
+    font-size: 13px;
+  }
+
+  /* Saved feeds list */
+  .saved-feeds-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+
+  .saved-feed-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; padding: 5px 8px;
+    background: #18181b; border-radius: 3px;
+  }
+
+  .saved-feed-label { flex: 1; color: #d4d4d8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .saved-feed-cat {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px;
+    background: #27272a; color: #71717a; flex-shrink: 0;
+  }
+
+  .saved-feed-remove {
+    background: none; border: none; color: #3f3f46;
+    cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1;
+    flex-shrink: 0;
+  }
+  .saved-feed-remove:hover { color: #f87171; background: none; }
+
+  /* Category badge on result cards */
+  .category-badge {
+    font-size: 10px; padding: 1px 7px; border-radius: 10px;
+    background: #1e1e22; color: #71717a; flex-shrink: 0;
+  }
+
+  /* Skip note */
+  .skip-note {
+    font-size: 11px; color: #666; font-style: italic;
+    margin-top: 4px; margin-bottom: 6px;
+  }
+
+  /* Skill session card improvements */
+  .session-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #52525b; margin-bottom: 8px;
+  }
+
+  .session-due { color: #4ade80; }
+  .session-due.overdue { color: #f87171; }
+
+  .retention-prompt {
+    display: none; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid #1e1e22;
+    font-size: 12px; color: #a1a1aa;
+  }
+  .retention-prompt.visible { display: block; }
+
+  /* Inline save-feed form */
+  .save-feed-form {
+    background: #18181b; border: 1px solid #27272a;
+    border-radius: 4px; padding: 12px; margin-top: 8px;
+  }
+
+  .save-feed-form .sff-label {
+    font-size: 10px; color: #71717a; text-transform: uppercase;
+    letter-spacing: 0.5px; display: block; margin-bottom: 3px;
+  }
+
+  .save-feed-form input, .save-feed-form select {
+    width: 100%; background: #0a0a0c; border: 1px solid #27272a;
+    color: #e4e4e7; padding: 6px 8px; font-family: inherit;
+    font-size: 12px; border-radius: 3px; outline: none; margin-bottom: 8px;
+  }
+
+  /* Preset buttons */
+  .preset-btn {
+    padding: 5px 12px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #aaa;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75rem;
+    border-radius: 20px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .preset-btn:hover {
+    border-color: #666;
+    color: #e0e0e0;
+  }
+
+  /* Section label */
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #52525b;
+    margin-bottom: 8px;
+  }
+
+  /* Channel finder */
+  .channel-finder {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Share card modal ── */
+  .share-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .share-modal-overlay.visible { display: flex; }
+
+  .share-modal-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .share-modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  /* The share card itself */
+  .share-card {
+    width: 560px;
+    max-width: 100%;
+    background: #0d0d0f;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 28px 32px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #d4d4d8;
+  }
+
+  .sc-platform {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #71717a;
+    margin-bottom: 2px;
+  }
+
+  .sc-type {
+    font-size: 11px;
+    color: #52525b;
+    margin-bottom: 20px;
+  }
+
+  .sc-section {
+    margin-bottom: 16px;
+  }
+
+  .sc-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #52525b;
+    margin-bottom: 4px;
+  }
+
+  .sc-value {
+    font-size: 13px;
+    color: #e4e4e7;
+  }
+
+  .sc-verdict-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .sc-verdict-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .sc-verdict-dot.pass { background: #4ade80; }
+  .sc-verdict-dot.watch { background: #fbbf24; }
+  .sc-verdict-dot.skip { background: #f87171; }
+
+  .sc-verdict-label {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .sc-verdict-label.pass { color: #4ade80; }
+  .sc-verdict-label.watch { color: #fbbf24; }
+  .sc-verdict-label.skip { color: #f87171; }
+
+  .sc-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .sc-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sc-bar-name {
+    font-size: 11px;
+    color: #71717a;
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .sc-bar-track {
+    display: flex;
+    gap: 2px;
+  }
+
+  .sc-bar-block {
+    width: 10px;
+    height: 10px;
+    border-radius: 1px;
+  }
+
+  .sc-bar-block.filled.pass { background: #4ade80; }
+  .sc-bar-block.filled.watch { background: #fbbf24; }
+  .sc-bar-block.filled.skip { background: #f87171; }
+  .sc-bar-block.empty { background: #27272a; }
+
+  .sc-bar-tier {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #71717a;
+    margin-left: 4px;
+  }
+
+  .sc-divider {
+    border: none;
+    border-top: 1px solid #222;
+    margin: 16px 0;
+  }
+
+  .sc-footer {
+    font-size: 10px;
+    color: #52525b;
+    margin-top: 4px;
+  }
+
+  .sc-footer strong { color: #71717a; }
+
+  .sc-concern-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .sc-concern-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 3px;
+  }
+
+  .sc-concern-badge.well-founded { background: #052e16; color: #4ade80; }
+  .sc-concern-badge.mixed        { background: #2a1f00; color: #fbbf24; }
+  .sc-concern-badge.overblown    { background: #2a0a0a; color: #f87171; }
+  .sc-concern-badge.amplified    { background: #1e1b4b; color: #a78bfa; }
+
+  .sc-confidence {
+    font-size: 11px;
+    color: #71717a;
+  }
+
+  .sc-socratic {
+    color: #a78bfa;
+    font-style: italic;
+    font-size: 13px;
+  }
+
+  /* Copy feedback */
+  .copy-feedback {
+    font-size: 11px;
+    color: #4ade80;
+    text-align: center;
+    min-height: 16px;
+  }
+
+  /* ── Intent selector ── */
+  .intent-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .intent-btn {
+    padding: 5px 14px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #71717a;
+    font-family: inherit;
+    font-size: 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .intent-btn:hover { border-color: #52525b; color: #a1a1aa; background: #18181b; }
+
+  .intent-btn.active {
+    border-color: #818cf8;
+    color: #818cf8;
+    background: #1e1b4b22;
+  }
+
+  /* ── Two-panel feed layout ── */
+  .feed-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .feed-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+  }
+
+  .feed-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  @media (max-width: 700px) {
+    .feed-layout { flex-direction: column; }
+    .feed-sidebar { width: 100%; }
+  }
+
+  /* ── Queue items ── */
+  .queue-item {
+    background: #141416;
+    border: 1px solid #1e1e22;
+    border-left: 3px solid #818cf8;
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .queue-item-body { flex: 1; min-width: 0; }
+
+  .queue-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e4e4e7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+
+  .queue-item-meta {
+    font-size: 11px;
+    color: #52525b;
+  }
+
+  /* ── Practice prompt box ── */
+  .practice-prompt-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #1a1a2e;
+    border: 1px solid #2d2b55;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #c4b5fd;
+    line-height: 1.55;
+  }
+
+  .practice-prompt-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6d5eac;
+    margin-bottom: 5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Reality Calibration Platform</h1>
+  <p class="subtitle">First-pass quality assessment. Not the last word — always shows its reasoning.</p>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('score')">Score</button>
+    <button class="tab" onclick="switchTab('feed')">Feed</button>
+    <button class="tab" onclick="switchTab('skills')">Skills Due</button>
+    <button class="tab" onclick="switchTab('trend')">Trend Check</button>
+    <button class="tab" onclick="switchTab('queue')">Queue</button>
+  </div>
+
+  <!-- ═══ TAB 1: Score ═══ -->
+  <div class="tab-panel active" id="panel-score">
+    <div class="input-section">
+      <label>Score a single URL</label>
+      <div class="input-row">
+        <input type="text" id="single-url" placeholder="YouTube or article URL...">
+        <button id="score-btn" onclick="scoreSingle()">Score</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="input-section">
+      <label>Score multiple URLs (one per line)</label>
+      <textarea id="batch-urls" placeholder="https://youtube.com/watch?v=...&#10;https://example.com/article&#10;..."></textarea>
+      <button id="batch-btn" onclick="scoreBatch()">Score All</button>
+    </div>
+
+    <hr class="divider">
+
+    <div class="loading" id="score-loading">
+      <span class="spinner"></span> Fetching content and scoring...
+    </div>
+
+    <div id="score-results" class="results"></div>
+  </div>
+
+  <!-- ═══ TAB 2: Feed ═══ -->
+  <div class="tab-panel" id="panel-feed">
+    <div class="feed-layout">
+
+      <!-- Left sidebar: saved feeds + channel finder -->
+      <div class="feed-sidebar">
+        <div class="input-section" style="margin-bottom:16px;">
+          <div class="section-label">MY SAVED FEEDS</div>
+          <div id="saved-feeds-list" class="saved-feeds-list"></div>
+          <div id="saved-feeds-empty" style="display:none; font-size:11px; color:#52525b; padding:6px 0 4px;">
+            No saved feeds yet — find a channel below.
+          </div>
+        </div>
+
+        <div class="input-section">
+          <div class="section-label">FIND YOUTUBE CHANNEL</div>
+          <div class="channel-finder">
+            <input
+              type="text"
+              id="channelQuery"
+              placeholder="Name, @handle, or URL..."
+              style="flex:1; padding:8px; background:#1a1a1a; border:1px solid #333; color:#e0e0e0; font-family:inherit; font-size:0.8rem;"
+            />
+            <button onclick="findChannel()" style="padding:8px 12px; background:#2a2a2a; border:1px solid #444; color:#e0e0e0; cursor:pointer; font-family:inherit; font-size:12px;">
+              Find
+            </button>
+          </div>
+          <div id="channelResult" style="margin-top:8px; font-size:0.8rem; display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Right main: intent + controls + results -->
+      <div class="feed-main">
+
+        <!-- Intent selector -->
+        <div style="margin-bottom:4px;">
+          <div class="section-label">SESSION INTENT</div>
+          <div class="intent-row">
+            <button class="intent-btn active" onclick="setIntent('mix', this)">Mix</button>
+            <button class="intent-btn" onclick="setIntent('learning', this)">Learning</button>
+            <button class="intent-btn" onclick="setIntent('creating', this)">Creating</button>
+            <button class="intent-btn" onclick="setIntent('background', this)">Background</button>
+            <button class="intent-btn" onclick="setIntent('news', this)">News</button>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <label>Extra feed URLs (one per line, optional)</label>
+          <textarea id="feed-urls" placeholder="https://example.com/feed.xml&#10;Leave blank to use only saved feeds above..."></textarea>
+          <div class="toggle-row">
+            <input type="checkbox" id="feed-filter-skip" checked>
+            <label for="feed-filter-skip">Hide Skip items</label>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <button id="feed-btn" onclick="loadFeed()">Load Feed</button>
+            <button class="btn-small" onclick="showSaveFeedsForm()" id="save-feeds-btn" style="display:none;">Save feeds to library</button>
+          </div>
+          <div id="save-feeds-form" class="save-feed-form" style="display:none; margin-top:10px;">
+            <div style="font-size:11px; color:#a1a1aa; margin-bottom:10px;">Save the current URLs to your library</div>
+            <div id="save-feeds-fields"><!-- populated by JS --></div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-small btn-green" onclick="executeSaveFeeds()">Save All</button>
+              <button class="btn-small" onclick="document.getElementById('save-feeds-form').style.display='none'">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="loading" id="feed-loading">
+          <span class="spinner"></span> Parsing feeds and scoring items...
+        </div>
+
+        <div id="feed-results" class="results"></div>
+      </div><!-- /feed-main -->
+    </div><!-- /feed-layout -->
+  </div>
+
+  <!-- ═══ TAB 3: Skills Due ═══ -->
+  <div class="tab-panel" id="panel-skills">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <label style="font-size: 11px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px;">Due Today</label>
+      <div class="toggle-row" style="margin-bottom: 0;">
+        <input type="checkbox" id="show-all-skills" onchange="toggleAllSkills()">
+        <label for="show-all-skills">View all skills</label>
+      </div>
+    </div>
+
+    <div class="loading" id="skills-loading">
+      <span class="spinner"></span> Loading skills...
+    </div>
+
+    <div id="skills-due-results"></div>
+    <div id="skills-all-results" style="display: none;"></div>
+  </div>
+
+  <!-- ═══ TAB 4: Trend Check ═══ -->
+  <div class="tab-panel" id="panel-trend">
+    <div class="section-label">COMMON CONCERNS — click to populate</div>
+    <div class="preset-buttons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;">
+      <!-- Environmental -->
+      <button class="preset-btn" onclick="setTrend('Microplastics in the environment')">Microplastics</button>
+      <button class="preset-btn" onclick="setTrend('Climate change')">Climate Change</button>
+      <button class="preset-btn" onclick="setTrend('Biodiversity loss and species extinction')">Biodiversity Loss</button>
+      <button class="preset-btn" onclick="setTrend('Forever chemicals PFAS contamination')">Forever Chemicals</button>
+      <!-- Societal -->
+      <button class="preset-btn" onclick="setTrend('AI risk and artificial general intelligence')">AI Risk</button>
+      <button class="preset-btn" onclick="setTrend('Economic collapse and financial crisis')">Economic Collapse</button>
+      <button class="preset-btn" onclick="setTrend('Demographic decline and falling birth rates')">Demographic Decline</button>
+      <button class="preset-btn" onclick="setTrend('Political polarization')">Political Polarization</button>
+      <!-- Health -->
+      <button class="preset-btn" onclick="setTrend('Pandemic risk and disease emergence')">Pandemic Risk</button>
+      <button class="preset-btn" onclick="setTrend('Antibiotic resistance')">Antibiotic Resistance</button>
+      <button class="preset-btn" onclick="setTrend('Mental health crisis')">Mental Health Crisis</button>
+      <button class="preset-btn" onclick="setTrend('Endocrine disruption from environmental chemicals')">Endocrine Disruption</button>
+      <!-- Cultural -->
+      <button class="preset-btn" onclick="setTrend('Attention collapse and smartphone addiction')">Attention Collapse</button>
+      <button class="preset-btn" onclick="setTrend('Dating crisis and relationship formation')">Dating Crisis</button>
+      <button class="preset-btn" onclick="setTrend('Institutional trust collapse')">Trust Collapse</button>
+      <button class="preset-btn" onclick="setTrend('Misinformation ecosystem')">Misinformation</button>
+    </div>
+
+    <div class="input-section">
+      <label>What are people worried about?</label>
+      <div class="input-row">
+        <input type="text" id="trendTopic" placeholder="microplastics in human tissue...">
+        <button id="trend-btn" onclick="assessTrend()">Assess</button>
+      </div>
+    </div>
+
+    <div class="input-section">
+      <label>Additional context (optional)</label>
+      <input type="text" id="trend-context" placeholder="Any extra context you want considered...">
+    </div>
+
+    <div class="loading" id="trend-loading">
+      <span class="spinner"></span> Assessing trend...
+    </div>
+
+    <div id="trend-results"></div>
+  </div>
+
+  <!-- ═══ TAB 5: Queue ═══ -->
+  <div class="tab-panel" id="panel-queue">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <label style="font-size:11px; color:#a1a1aa; text-transform:uppercase; letter-spacing:0.5px;">Watch Queue</label>
+      <button class="btn-small btn-red" onclick="clearQueue()">Clear All</button>
+    </div>
+
+    <div class="loading" id="queue-loading">
+      <span class="spinner"></span> Loading queue...
+    </div>
+
+    <div id="queue-results"></div>
+  </div>
+
+  <div class="disclaimer">
+    Scores are a first pass — epistemic quality signals, not verdicts. Always read the reasoning.
+  </div>
+</div>
+
+<!-- Skill Tag Modal -->
+<div class="modal-overlay" id="skill-modal">
+  <div class="modal">
+    <h3>Tag as Skill to Learn</h3>
+    <input type="hidden" id="skill-modal-url">
+    <div class="field">
+      <label>Skill name</label>
+      <input type="text" id="skill-modal-name" placeholder="e.g. silhouette drawing">
+    </div>
+    <div class="field">
+      <label>Practice notes (optional)</label>
+      <input type="text" id="skill-modal-notes" placeholder="e.g. 6 silhouettes, then lighting study">
+    </div>
+    <div class="field">
+      <label>Difficulty</label>
+      <select id="skill-modal-difficulty">
+        <option value="">-- Select --</option>
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeSkillModal()">Cancel</button>
+      <button class="btn-green" onclick="submitSkillTag()">Create Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share card modal -->
+<div class="share-modal-overlay" id="share-modal" onclick="handleShareOverlayClick(event)">
+  <div class="share-modal-box">
+    <div id="share-card-content"><!-- populated by JS --></div>
+    <div class="share-modal-actions">
+      <button class="btn-small" onclick="copyCardAsText()">Copy as Text</button>
+      <button class="btn-small btn-green" onclick="copyCardAsImage()">Copy as Image</button>
+      <button class="btn-small" onclick="closeShareModal()">Close</button>
+    </div>
+    <div class="copy-feedback" id="copy-feedback"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const API_BASE = '';
+
+// ─── Page init ───
+window.addEventListener('DOMContentLoaded', () => {
+  loadSavedFeeds();
+});
+
+// ─── Tab switching ───
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+  const panel = document.querySelector(`.tab-panel#panel-${name}`);
+  if (panel) panel.classList.add('active');
+
+  // Find tab by onclick attribute
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.getAttribute('onclick') === `switchTab('${name}')`) {
+      t.classList.add('active');
+    }
+  });
+
+  // Auto-load data when switching tabs
+  if (name === 'skills') loadSkillsDue();
+  if (name === 'feed') loadSavedFeeds();
+  if (name === 'queue') loadQueue();
+}
+
+// ─── Helpers ───
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function setLoading(id, on) {
+  document.getElementById(id).classList.toggle('visible', on);
+}
+
+function toggleSignals(id) {
+  const el = document.getElementById(id);
+  const toggle = el.previousElementSibling;
+  const open = el.classList.toggle('open');
+  toggle.innerHTML = open ? '&#9660; Hide signal breakdown' : '&#9654; Show signal breakdown';
+}
+
+// ─── Result store (for passing full data objects to share modal) ───
+window._resultStore = {};
+
+// ─── Score card renderer ───
+
+function renderCard(r) {
+  const v = (r.verdict || 'error').toLowerCase();
+  const signals = r.scores ? Object.entries(r.scores) : [];
+  const signalNames = {
+    signal_to_noise: 'Signal-to-Noise',
+    evergreen_value: 'Evergreen Value',
+    audience_respect: 'Audience Respect',
+    padding_vs_craft: 'Padding vs Craft'
+  };
+
+  const signalsHtml = signals.map(([key, s]) => `
+    <div class="signal">
+      <div class="signal-header">
+        <span class="signal-name">${signalNames[key] || key}</span>
+        <span class="tier ${s.tier.toLowerCase()}">${s.tier}</span>
+      </div>
+      <div class="signal-reason">${esc(s.reason)}</div>
+    </div>
+  `).join('');
+
+  const id = 'sig-' + Math.random().toString(36).slice(2);
+  const rateId = 'rate-' + Math.random().toString(36).slice(2);
+  const storeId = 'r-' + Math.random().toString(36).slice(2);
+  window._resultStore[storeId] = r;
+
+  if (r.error && !r.verdict) {
+    return `
+      <div class="card error">
+        <div class="card-url">${esc(r.url)}</div>
+        <div class="error-msg">${esc(r.error)}</div>
+      </div>
+    `;
+  }
+
+  let repHtml = '';
+  if (r.creator_reputation && r.creator_reputation.total_ratings > 0) {
+    const tier = r.creator_reputation.human_trust_tier.toLowerCase();
+    repHtml = `<span class="reputation-badge ${tier}">Trust: ${r.creator_reputation.human_trust_tier}</span>`;
+  }
+
+  let repNote = '';
+  if (r.reputation_note) {
+    repNote = `<div class="reputation-note">${esc(r.reputation_note)}</div>`;
+  }
+
+  const urlEncoded = encodeURIComponent(r.url);
+
+  const categoryBadge = r._category
+    ? `<span class="category-badge">${esc(r._category)}</span>` : '';
+
+  const skipNote = v === 'skip' ? `
+    <div class="skip-note">May still have entertainment or cultural value — your call. Approach with appropriate skepticism.</div>
+  ` : '';
+
+  return `
+    <div class="card ${v}">
+      <div class="card-header">
+        <div class="card-title">${esc(r.title || 'Untitled')}${repHtml}</div>
+        <div style="display:flex; gap:5px; align-items:center; flex-shrink:0;">
+          ${categoryBadge}
+          ${r.verdict ? `<span class="badge ${v}">${r.verdict}</span>` : ''}
+        </div>
+      </div>
+      <div class="card-url"><a href="${esc(r.url)}" target="_blank">${esc(r.url)}</a></div>
+      ${r.verdict_reason ? `<div class="verdict-reason">${esc(r.verdict_reason)}</div>` : ''}
+      ${skipNote}
+      ${repNote}
+      ${r.error ? `<div class="error-msg">${esc(r.error)}</div>` : ''}
+      ${signals.length ? `
+        <div class="signals-toggle" onclick="toggleSignals('${id}')">&#9654; Show signal breakdown</div>
+        <div class="signals" id="${id}">${signalsHtml}</div>
+      ` : ''}
+      <div class="card-actions">
+        <button class="btn-small btn-green" onclick="rateContent('${urlEncoded}', true, '${rateId}')">Worth it</button>
+        <button class="btn-small btn-red" onclick="rateContent('${urlEncoded}', false, '${rateId}')">Not worth it</button>
+        <button class="btn-small" onclick="openSkillModal('${urlEncoded}')">Tag as skill</button>
+        <button class="btn-small" onclick="queueItem('${storeId}', this)">+ Queue</button>
+        <button class="btn-small" onclick="openShareModal('score','${storeId}')">Share</button>
+        <span class="rate-feedback" id="${rateId}">Saved!</span>
+      </div>
+    </div>
+  `;
+}
+
+// ─── Score tab ───
+
+async function scoreSingle() {
+  const url = document.getElementById('single-url').value.trim();
+  if (!url) return;
+
+  setLoading('score-loading', true);
+  document.getElementById('score-results').innerHTML = '';
+
+  try {
+    const resp = await fetch(`${API_BASE}/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await resp.json();
+    document.getElementById('score-results').innerHTML = renderCard(data);
+  } catch (e) {
+    document.getElementById('score-results').innerHTML = renderCard({
+      url, error: 'Failed to connect to backend. Is uvicorn running?'
+    });
+  }
+
+  setLoading('score-loading', false);
+}
+
+async function scoreBatch() {
+  const raw = document.getElementById('batch-urls').value.trim();
+  if (!raw) return;
+
+  const urls = raw.split('\n').map(u => u.trim()).filter(Boolean);
+  if (!urls.length) return;
+
+  setLoading('score-loading', true);
+  document.getElementById('score-results').innerHTML = '';
+
+  try {
+    const resp = await fetch(`${API_BASE}/score-batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls })
+    });
+    const data = await resp.json();
+    document.getElementById('score-results').innerHTML = data.map(renderCard).join('');
+  } catch (e) {
+    document.getElementById('score-results').innerHTML = renderCard({
+      url: urls[0], error: 'Failed to connect to backend.'
+    });
+  }
+
+  setLoading('score-loading', false);
+}
+
+document.getElementById('single-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') scoreSingle();
+});
+
+// ─── Feed tab ───
+
+window._currentIntent = 'mix';
+
+function setIntent(intent, btn) {
+  window._currentIntent = intent;
+  document.querySelectorAll('.intent-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+async function loadFeed() {
+  const textareaRaw = document.getElementById('feed-urls').value.trim();
+  const feed_urls = textareaRaw ? textareaRaw.split('\n').map(u => u.trim()).filter(Boolean) : [];
+  const filter_skip = document.getElementById('feed-filter-skip').checked;
+
+  setLoading('feed-loading', true);
+  document.getElementById('feed-results').innerHTML = '';
+
+  try {
+    const resp = await fetch(`${API_BASE}/feed`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        feed_urls,
+        filter_skip,
+        limit_per_feed: 15,
+        total_limit: 50,
+        intent: window._currentIntent,
+        use_saved_feeds: true,
+      })
+    });
+    const allResults = await resp.json();
+
+    if (allResults.length === 0) {
+      document.getElementById('feed-results').innerHTML =
+        '<div class="empty-state">No items to display. Add saved feeds, or add URLs in the box above. Uncheck "Hide Skip items" to see everything.</div>';
+    } else {
+      document.getElementById('feed-results').innerHTML = allResults.map(renderCard).join('');
+    }
+
+    // Show "Save feeds" button if there are unsaved textarea URLs
+    const savedUrls = new Set((window._savedFeeds || []).map(f => f.url));
+    const unsaved = feed_urls.filter(u => !savedUrls.has(u));
+    document.getElementById('save-feeds-btn').style.display = unsaved.length ? 'inline-block' : 'none';
+
+  } catch (e) {
+    document.getElementById('feed-results').innerHTML = renderCard({
+      url: '', error: 'Failed to load feed. Is uvicorn running?'
+    });
+  }
+
+  setLoading('feed-loading', false);
+}
+
+// ─── Ratings ───
+
+async function rateContent(encodedUrl, worthIt, feedbackId) {
+  const url = decodeURIComponent(encodedUrl);
+  try {
+    await fetch(`${API_BASE}/rate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        worth_time: worthIt,
+        delivered_promise: worthIt,
+        recommend_learning: null
+      })
+    });
+    const fb = document.getElementById(feedbackId);
+    fb.textContent = worthIt ? 'Rated: Worth it!' : 'Rated: Not worth it';
+    fb.style.display = 'inline';
+    fb.style.color = worthIt ? '#4ade80' : '#f87171';
+  } catch (e) {
+    // Silent fail — rating is non-critical
+  }
+}
+
+// ─── Skills ───
+
+function openSkillModal(encodedUrl) {
+  document.getElementById('skill-modal-url').value = decodeURIComponent(encodedUrl);
+  document.getElementById('skill-modal-name').value = '';
+  document.getElementById('skill-modal-notes').value = '';
+  document.getElementById('skill-modal-difficulty').value = '';
+  document.getElementById('skill-modal').classList.add('visible');
+}
+
+function closeSkillModal() {
+  document.getElementById('skill-modal').classList.remove('visible');
+}
+
+async function submitSkillTag() {
+  const url = document.getElementById('skill-modal-url').value;
+  const skill_name = document.getElementById('skill-modal-name').value.trim();
+  if (!skill_name) return;
+
+  const body = {
+    url,
+    skill_name,
+    practice_notes: document.getElementById('skill-modal-notes').value.trim() || null,
+    difficulty: document.getElementById('skill-modal-difficulty').value || null,
+  };
+
+  try {
+    const resp = await fetch(`${API_BASE}/skills/tag`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+    closeSkillModal();
+    alert(`Skill "${skill_name}" created! Next due: ${data.next_due}`);
+  } catch (e) {
+    alert('Failed to create skill. Is uvicorn running?');
+  }
+}
+
+async function loadSkillsDue() {
+  setLoading('skills-loading', true);
+  document.getElementById('skills-due-results').innerHTML = '';
+
+  try {
+    const resp = await fetch(`${API_BASE}/skills/due`);
+    const data = await resp.json();
+
+    if (!data.due_today || data.due_today.length === 0) {
+      document.getElementById('skills-due-results').innerHTML =
+        '<div class="empty-state">Nothing due today. Keep learning!</div>';
+    } else {
+      document.getElementById('skills-due-results').innerHTML =
+        data.due_today.map(renderSkillDueCard).join('');
+    }
+  } catch (e) {
+    document.getElementById('skills-due-results').innerHTML =
+      '<div class="empty-state">Failed to load skills. Is uvicorn running?</div>';
+  }
+
+  setLoading('skills-loading', false);
+}
+
+function renderSkillDueCard(item) {
+  const dueText = item.days_overdue > 0
+    ? `${item.days_overdue}d overdue` : 'Today';
+  const dueCls = item.days_overdue > 0 ? 'overdue' : '';
+  const typeLabel = item.type === 'rewatch' ? 'REWATCH SESSION' : 'PRACTICE SESSION';
+  const diffLabel = item.difficulty
+    ? ` <span style="font-weight:400; color:#71717a;">— ${esc(item.difficulty.charAt(0).toUpperCase() + item.difficulty.slice(1))}</span>` : '';
+  const sid = `sess-${item.skill_id}-${item.type}-${Math.random().toString(36).slice(2)}`;
+
+  // Practice or rewatch specific content
+  let sessionContent = '';
+  if (item.type === 'practice') {
+    if (item.practice_prompt) {
+      sessionContent = `
+        <div class="practice-prompt-box">
+          <div class="practice-prompt-label">Practice Exercise</div>
+          ${esc(item.practice_prompt)}
+        </div>`;
+    } else if (item.practice_notes) {
+      sessionContent = `
+        <div class="skill-notes" style="margin-top:8px;">
+          <span style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#52525b;">Notes</span><br>
+          ${esc(item.practice_notes)}
+        </div>`;
+    }
+  } else {
+    // rewatch
+    sessionContent = `
+      <div class="skill-meta" style="margin-top:8px; color:#71717a; font-style:italic; font-size:12px;">
+        Watch with fresh eyes — notice what you missed the first time.
+      </div>
+      <div class="skill-meta" style="margin-top:6px;">
+        <a href="${esc(item.source_url)}" target="_blank" style="color:#52525b; text-decoration:none;">Source video ↗</a>
+      </div>`;
+    if (item.practice_notes) {
+      sessionContent += `
+        <div class="skill-notes" style="margin-top:8px;">
+          <span style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#52525b;">Notes</span><br>
+          ${esc(item.practice_notes)}
+        </div>`;
+    }
+  }
+
+  return `
+    <div class="skill-card" id="${sid}">
+      <div class="session-header">
+        <span>${typeLabel} &nbsp;#${item.interval_number}</span>
+        <span class="session-due ${dueCls}">Due: ${esc(dueText)}</span>
+      </div>
+      <div class="skill-name">${esc(item.skill_name)}${diffLabel}</div>
+      ${sessionContent}
+      <div class="card-actions" id="actions-${sid}">
+        <button class="btn-small btn-green" onclick="showRetentionPrompt('${sid}')">✓ Mark Complete</button>
+        <button class="btn-small" onclick="skipTodaySkill(${item.skill_id}, '${item.type}', '${sid}')">Skip Today</button>
+      </div>
+      <div class="retention-prompt" id="retention-${sid}">
+        On completion: Did this feel retained?
+        &nbsp;
+        <button class="btn-small btn-green" onclick="completeSkill(${item.skill_id}, '${item.type}', true, 'actions-${sid}', 'retention-${sid}')">Yes</button>
+        <button class="btn-small btn-red" style="margin-left:4px;" onclick="completeSkill(${item.skill_id}, '${item.type}', false, 'actions-${sid}', 'retention-${sid}')">No</button>
+      </div>
+    </div>
+  `;
+}
+
+function showRetentionPrompt(sid) {
+  document.getElementById(`actions-${sid}`).style.display = 'none';
+  document.getElementById(`retention-${sid}`).classList.add('visible');
+}
+
+async function skipTodaySkill(skillId, type, sid) {
+  try {
+    const resp = await fetch(`${API_BASE}/skills/skip-today`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ skill_id: skillId, type })
+    });
+    const data = await resp.json();
+    const el = document.getElementById(`actions-${sid}`);
+    if (el) el.innerHTML = `<span style="color:#fbbf24; font-size:12px;">Skipped — due ${data.new_due}</span>`;
+  } catch (e) { /* silent */ }
+}
+
+async function completeSkill(skillId, type, retained, actionsId, retentionId) {
+  try {
+    const resp = await fetch(`${API_BASE}/skills/complete`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ skill_id: skillId, type, retained })
+    });
+    const data = await resp.json();
+    if (retentionId) {
+      const r = document.getElementById(retentionId);
+      if (r) r.classList.remove('visible');
+    }
+    const el = document.getElementById(actionsId);
+    if (el) {
+      const nextMsg = data.next_due ? `Next due: ${data.next_due}` : 'Schedule complete!';
+      const adj = data.interval_adjusted ? ' (interval adjusted)' : '';
+      el.innerHTML = `<span style="color:#4ade80; font-size:12px;">✓ Completed! ${nextMsg}${adj}</span>`;
+      el.style.display = 'flex';
+    }
+  } catch (e) { /* silent */ }
+}
+
+async function toggleAllSkills() {
+  const showAll = document.getElementById('show-all-skills').checked;
+  const dueDiv = document.getElementById('skills-due-results');
+  const allDiv = document.getElementById('skills-all-results');
+
+  if (showAll) {
+    dueDiv.style.display = 'none';
+    allDiv.style.display = 'block';
+    setLoading('skills-loading', true);
+
+    try {
+      const resp = await fetch(`${API_BASE}/skills/all`);
+      const data = await resp.json();
+      if (!data || data.length === 0) {
+        allDiv.innerHTML = '<div class="empty-state">No skills tagged yet.</div>';
+      } else {
+        allDiv.innerHTML = data.map(renderAllSkillCard).join('');
+      }
+    } catch (e) {
+      allDiv.innerHTML = '<div class="empty-state">Failed to load skills.</div>';
+    }
+
+    setLoading('skills-loading', false);
+  } else {
+    dueDiv.style.display = 'block';
+    allDiv.style.display = 'none';
+  }
+}
+
+function renderAllSkillCard(skill) {
+  const completed = skill.schedule.filter(s => s.completed_at).length;
+  const total = skill.schedule.length;
+
+  return `
+    <div class="skill-card">
+      <div class="skill-name">${esc(skill.skill_name)}</div>
+      <div class="skill-meta">
+        ${skill.difficulty ? esc(skill.difficulty) + ' &middot; ' : ''}
+        ${completed}/${total} completed &middot;
+        <a href="${esc(skill.source_url)}" target="_blank" style="color: #71717a;">Source</a>
+      </div>
+      ${skill.practice_notes ? `<div class="skill-notes">${esc(skill.practice_notes)}</div>` : ''}
+    </div>
+  `;
+}
+
+// ─── Trend Check ───
+
+async function assessTrend() {
+  const topic = document.getElementById('trendTopic').value.trim();
+  if (!topic) return;
+
+  const context = document.getElementById('trend-context').value.trim() || null;
+
+  setLoading('trend-loading', true);
+  document.getElementById('trend-results').innerHTML = '';
+
+  try {
+    const resp = await fetch(`${API_BASE}/assess-trend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, context })
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      document.getElementById('trend-results').innerHTML =
+        `<div class="card error"><div class="error-msg">${esc(data.error)}</div></div>`;
+    } else {
+      document.getElementById('trend-results').innerHTML = renderTrendCard(data);
+    }
+  } catch (e) {
+    document.getElementById('trend-results').innerHTML =
+      '<div class="card error"><div class="error-msg">Failed to assess trend. Is uvicorn running?</div></div>';
+  }
+
+  setLoading('trend-loading', false);
+}
+
+document.getElementById('trendTopic').addEventListener('keydown', e => {
+  if (e.key === 'Enter') assessTrend();
+});
+
+// ─── Share modal ───
+
+window._shareCardType = null;
+
+function openShareModal(type, storeId) {
+  const data = window._resultStore[storeId];
+  if (!data) return;
+  window._shareCardType = type;
+  window._shareCardData = data;
+
+  const html = type === 'trend' ? buildTrendShareCard(data) : buildScoreShareCard(data);
+  document.getElementById('share-card-content').innerHTML = html;
+  document.getElementById('copy-feedback').textContent = '';
+  document.getElementById('share-modal').classList.add('visible');
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').classList.remove('visible');
+}
+
+function handleShareOverlayClick(e) {
+  if (e.target === document.getElementById('share-modal')) closeShareModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeShareModal();
+});
+
+// ── Bar renderer (10-block track) ──
+function tierBlocks(tier, verdictClass) {
+  const filled = tier === 'High' ? 8 : tier === 'Medium' ? 5 : 2;
+  let html = '';
+  for (let i = 0; i < 10; i++) {
+    html += i < filled
+      ? `<div class="sc-bar-block filled ${verdictClass}"></div>`
+      : `<div class="sc-bar-block empty"></div>`;
+  }
+  return html;
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
+// ── Score / Feed share card ──
+function buildScoreShareCard(r) {
+  const v = (r.verdict || 'watch').toLowerCase();
+  const title = truncate(r.title || 'Untitled', 120);
+  const contentLabel = r.content_type === 'youtube' ? 'YouTube' : 'Article';
+
+  const signalNames = {
+    signal_to_noise: 'Signal/Noise',
+    evergreen_value: 'Evergreen  ',
+    audience_respect: 'Audience   ',
+    padding_vs_craft: 'Craft      ',
+  };
+
+  const barsHtml = r.scores ? Object.entries(r.scores).map(([key, s]) => `
+    <div class="sc-bar-row">
+      <div class="sc-bar-name">${signalNames[key] || key}</div>
+      <div class="sc-bar-track">${tierBlocks(s.tier, v)}</div>
+      <div class="sc-bar-tier">${s.tier}</div>
+    </div>
+  `).join('') : '';
+
+  return `
+    <div class="share-card" id="the-share-card">
+      <div class="sc-platform">Reality Calibration Platform</div>
+      <div class="sc-type">Content Score · First Pass Assessment</div>
+
+      <div class="sc-section">
+        <div class="sc-label">Content</div>
+        <div class="sc-value">&ldquo;${esc(title)}&rdquo;</div>
+        <div style="font-size: 11px; color: #52525b; margin-top: 3px;">${esc(contentLabel)}</div>
+      </div>
+
+      <div class="sc-verdict-row">
+        <div class="sc-verdict-dot ${v}"></div>
+        <div class="sc-verdict-label ${v}">Verdict: ${r.verdict || '—'}</div>
+      </div>
+
+      ${r.verdict_reason ? `
+      <div class="sc-section">
+        <div class="sc-label">Summary</div>
+        <div class="sc-value">${esc(truncate(r.verdict_reason, 200))}</div>
+      </div>` : ''}
+
+      ${barsHtml ? `<div class="sc-bars">${barsHtml}</div>` : ''}
+
+      <hr class="sc-divider">
+      <div class="sc-footer">
+        <strong>realitycalibration.com</strong> &nbsp;·&nbsp;
+        Not the last word. Always read the full reasoning.
+      </div>
+    </div>
+  `;
+}
+
+// ── Trend Check share card ──
+function buildTrendShareCard(d) {
+  const concernClass = (d.concern_tier || '').toLowerCase().includes('well') ? 'well-founded'
+    : (d.concern_tier || '').toLowerCase().includes('mixed') ? 'mixed'
+    : (d.concern_tier || '').toLowerCase().includes('overblown') ? 'overblown'
+    : 'amplified';
+
+  const genuineSignal = truncate(d.what_evidence_supports || '', 220);
+  const amplifiedNoise = truncate(d.genuine_vs_amplified || '', 220);
+  const usefulAction = truncate(d.useful_action || '', 180);
+
+  return `
+    <div class="share-card" id="the-share-card">
+      <div class="sc-platform">Reality Calibration Platform</div>
+      <div class="sc-type">Trend Check · Calibrated Concern Assessment</div>
+
+      <div class="sc-section">
+        <div class="sc-label">Concern</div>
+        <div class="sc-value">${esc(truncate(d.topic, 120))}</div>
+      </div>
+
+      <div class="sc-concern-row">
+        <span class="sc-concern-badge ${concernClass}">${esc(d.concern_tier)}</span>
+        <span class="sc-confidence">${esc(d.confidence)} confidence</span>
+      </div>
+
+      ${genuineSignal ? `
+      <div class="sc-section">
+        <div class="sc-label">Genuine Signal</div>
+        <div class="sc-value">${esc(genuineSignal)}</div>
+      </div>` : ''}
+
+      ${amplifiedNoise ? `
+      <div class="sc-section">
+        <div class="sc-label">Signal vs Amplification</div>
+        <div class="sc-value">${esc(amplifiedNoise)}</div>
+      </div>` : ''}
+
+      ${usefulAction ? `
+      <div class="sc-section">
+        <div class="sc-label">Useful Action</div>
+        <div class="sc-value">${esc(usefulAction)}</div>
+      </div>` : ''}
+
+      ${d.socratic_question ? `
+      <div class="sc-section">
+        <div class="sc-label">Question Worth Sitting With</div>
+        <div class="sc-socratic">${esc(d.socratic_question)}</div>
+      </div>` : ''}
+
+      <hr class="sc-divider">
+      <div class="sc-footer">
+        <strong>realitycalibration.com</strong> &nbsp;·&nbsp;
+        Not the last word. Always read the full reasoning.
+      </div>
+    </div>
+  `;
+}
+
+// ── Copy as Text ──
+function copyCardAsText() {
+  const d = window._shareCardData;
+  const type = window._shareCardType;
+  let text = '';
+
+  if (type === 'trend') {
+    text = [
+      'REALITY CALIBRATION PLATFORM',
+      'Trend Check — Calibrated Concern Assessment',
+      '',
+      'CONCERN',
+      d.topic || '',
+      '',
+      `ASSESSMENT    ${(d.concern_tier || '').toUpperCase()}  (${d.confidence} confidence)`,
+      '',
+      d.what_evidence_supports ? `GENUINE SIGNAL\n${d.what_evidence_supports}` : '',
+      '',
+      d.genuine_vs_amplified ? `SIGNAL VS AMPLIFICATION\n${d.genuine_vs_amplified}` : '',
+      '',
+      d.useful_action ? `USEFUL ACTION\n${d.useful_action}` : '',
+      '',
+      d.socratic_question ? `QUESTION WORTH SITTING WITH\n${d.socratic_question}` : '',
+      '',
+      'realitycalibration.com  ·  Not the last word. Always read the full reasoning.',
+    ].filter(l => l !== null).join('\n');
+  } else {
+    const tierBar = t => t === 'High' ? '████████░░' : t === 'Medium' ? '█████░░░░░' : '██░░░░░░░░';
+    const signalLabels = {
+      signal_to_noise: 'Signal/Noise',
+      evergreen_value: 'Evergreen   ',
+      audience_respect: 'Audience    ',
+      padding_vs_craft: 'Craft       ',
+    };
+    const bars = d.scores ? Object.entries(d.scores).map(([k, s]) =>
+      `  ${(signalLabels[k] || k).padEnd(13)} ${tierBar(s.tier)}  ${s.tier.toUpperCase()}`
+    ).join('\n') : '';
+
+    text = [
+      'REALITY CALIBRATION PLATFORM · Content Score',
+      '',
+      `"${truncate(d.title || 'Untitled', 120)}"`,
+      d.content_type === 'youtube' ? 'YouTube' : 'Article',
+      '',
+      `VERDICT    ● ${(d.verdict || '').toUpperCase()}`,
+      '',
+      d.verdict_reason ? d.verdict_reason : '',
+      '',
+      bars,
+      '',
+      'realitycalibration.com  ·  Not the last word. Always read the full reasoning.',
+    ].filter(l => l !== null).join('\n');
+  }
+
+  navigator.clipboard.writeText(text.trim()).then(() => {
+    showCopyFeedback('Copied to clipboard!');
+  }).catch(() => {
+    showCopyFeedback('Copy failed — try selecting manually.');
+  });
+}
+
+// ── Copy as Image ──
+async function copyCardAsImage() {
+  const card = document.getElementById('the-share-card');
+  if (!card) return;
+
+  showCopyFeedback('Rendering image…');
+
+  try {
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#0d0d0f',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const link = document.createElement('a');
+    link.download = `rcp-assessment-${ts}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showCopyFeedback('Image downloaded!');
+  } catch (e) {
+    showCopyFeedback('Image render failed: ' + e.message);
+  }
+}
+
+function showCopyFeedback(msg) {
+  const el = document.getElementById('copy-feedback');
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+// ─── Saved feeds ───
+
+const CATEGORIES = ['General', 'Science', 'Philosophy', 'Art & Design', 'Technology', 'Economics', 'Health', 'Politics'];
+
+function categoryOptions(selected) {
+  return CATEGORIES.map(c =>
+    `<option value="${c}"${c === selected ? ' selected' : ''}>${c}</option>`
+  ).join('');
+}
+
+async function loadSavedFeeds() {
+  try {
+    const resp = await fetch(`${API_BASE}/feeds/saved`);
+    const feeds = await resp.json();
+    window._savedFeeds = feeds;
+    renderSavedFeedsList(feeds);
+  } catch (e) {
+    // Server not running yet — ignore
+  }
+}
+
+function renderSavedFeedsList(feeds) {
+  const listEl = document.getElementById('saved-feeds-list');
+  const emptyEl = document.getElementById('saved-feeds-empty');
+  if (!feeds || feeds.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  // Group by category
+  const grouped = {};
+  feeds.forEach(f => {
+    const cat = f.category || 'General';
+    (grouped[cat] = grouped[cat] || []).push(f);
+  });
+
+  let html = '';
+  Object.entries(grouped).sort().forEach(([cat, items]) => {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:#52525b;padding:6px 0 3px;">${esc(cat)}</div>`;
+    items.forEach(f => {
+      html += `
+        <div class="saved-feed-item">
+          <input type="checkbox" class="feed-checkbox" data-url="${esc(f.url)}" data-category="${esc(f.category || 'General')}" checked style="flex-shrink:0; accent-color:#4ade80;">
+          <span class="saved-feed-label" title="${esc(f.url)}">${esc(f.label || f.url)}</span>
+          <span class="saved-feed-cat">${esc(f.category || 'General')}</span>
+          <button class="saved-feed-remove" onclick="removeSavedFeed(${f.id}, this)" title="Remove">×</button>
+        </div>`;
+    });
+  });
+  listEl.innerHTML = html;
+}
+
+async function removeSavedFeed(id, btn) {
+  try {
+    await fetch(`${API_BASE}/feeds/saved/${id}`, { method: 'DELETE' });
+    btn.closest('.saved-feed-item').remove();
+    window._savedFeeds = (window._savedFeeds || []).filter(f => f.id !== id);
+    if (!document.querySelector('.saved-feed-item')) {
+      document.getElementById('saved-feeds-empty').style.display = 'block';
+    }
+  } catch (e) { /* silent */ }
+}
+
+function showSaveFeedsForm() {
+  const savedUrls = new Set((window._savedFeeds || []).map(f => f.url));
+  const feed_urls = document.getElementById('feed-urls').value.trim()
+    .split('\n').map(u => u.trim()).filter(Boolean);
+  const unsaved = feed_urls.filter(u => !savedUrls.has(u));
+
+  if (!unsaved.length) {
+    document.getElementById('save-feeds-btn').textContent = 'All feeds already saved';
+    return;
+  }
+
+  const fields = unsaved.map((u, i) => `
+    <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #27272a;">
+      <div style="font-size:11px; color:#52525b; margin-bottom:4px; word-break:break-all;">${esc(u)}</div>
+      <span class="sff-label">Label</span>
+      <input type="text" id="sff-label-${i}" value="${esc(new URL(u).hostname)}">
+      <span class="sff-label">Category</span>
+      <select id="sff-cat-${i}">${categoryOptions('General')}</select>
+    </div>
+  `).join('');
+
+  document.getElementById('save-feeds-fields').innerHTML = fields;
+  document.getElementById('save-feeds-fields').dataset.urls = JSON.stringify(unsaved);
+  document.getElementById('save-feeds-form').style.display = 'block';
+}
+
+async function executeSaveFeeds() {
+  const unsaved = JSON.parse(document.getElementById('save-feeds-fields').dataset.urls || '[]');
+  for (let i = 0; i < unsaved.length; i++) {
+    const label = document.getElementById(`sff-label-${i}`)?.value.trim() || unsaved[i];
+    const category = document.getElementById(`sff-cat-${i}`)?.value || 'General';
+    try {
+      await fetch(`${API_BASE}/feeds/save`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ url: unsaved[i], label, category })
+      });
+    } catch (e) { /* silent */ }
+  }
+  document.getElementById('save-feeds-form').style.display = 'none';
+  document.getElementById('save-feeds-btn').style.display = 'none';
+  await loadSavedFeeds();
+}
+
+async function saveChannelFeed(encodedUrl) {
+  const url = decodeURIComponent(encodedUrl);
+  const label = document.getElementById('ch-save-label')?.value.trim() || url;
+  const category = document.getElementById('ch-save-category')?.value || 'General';
+  try {
+    await fetch(`${API_BASE}/feeds/save`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ url, label, category })
+    });
+    document.getElementById('channelResult').innerHTML =
+      `<span style="color:#6db86d;">✓ Saved to your feeds!</span>`;
+    await loadSavedFeeds();
+  } catch (e) {
+    document.getElementById('channelResult').innerHTML =
+      `<span style="color:#f87171;">Failed to save — is uvicorn running?</span>`;
+  }
+}
+
+// ─── Channel finder ───
+
+async function findChannel() {
+  const query = document.getElementById('channelQuery').value.trim();
+  if (!query) return;
+
+  const resultDiv = document.getElementById('channelResult');
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = '<span style="color:#888;">Searching...</span>';
+
+  try {
+    const resp = await fetch('/resolve-channel', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({query})
+    });
+    const data = await resp.json();
+
+    if (data.found) {
+      const encUrl = encodeURIComponent(data.rss_url);
+      const encName = encodeURIComponent(data.channel_name || '');
+      resultDiv.innerHTML = `
+        <span style="color:#6db86d;">✓ Found: ${esc(data.channel_name)}</span><br>
+        <span style="color:#888; font-size:0.75rem;">${esc(data.rss_url)}</span>
+        <button onclick="addChannelToFeed('${encUrl}', '${encName}')"
+          style="margin-left:10px; padding:4px 10px; background:#2a2a2a; border:1px solid #444; color:#e0e0e0; cursor:pointer; font-size:0.75rem; font-family:inherit;">
+          Add to Feed
+        </button>
+      `;
+    } else {
+      resultDiv.innerHTML = `<span style="color:#c0392b;">✗ ${esc(data.error)}</span>`;
+    }
+  } catch (e) {
+    resultDiv.innerHTML = '<span style="color:#c0392b;">✗ Search failed</span>';
+  }
+}
+
+function addChannelToFeed(encodedUrl, encodedName) {
+  const rssUrl = decodeURIComponent(encodedUrl);
+  const channelName = decodeURIComponent(encodedName || '');
+  const textarea = document.getElementById('feed-urls');
+  const current = textarea.value.trim();
+  textarea.value = current ? current + '\n' + rssUrl : rssUrl;
+
+  // Show save prompt
+  const encUrl = encodedUrl;
+  document.getElementById('channelResult').innerHTML = `
+    <div style="color:#6db86d; margin-bottom:8px;">✓ Added to feed URLs</div>
+    <div class="save-feed-form">
+      <div style="font-size:11px; color:#a1a1aa; margin-bottom:8px;">Add a label and category for this feed?</div>
+      <span class="sff-label">Label</span>
+      <input type="text" id="ch-save-label" value="${esc(channelName || rssUrl)}">
+      <span class="sff-label">Category</span>
+      <select id="ch-save-category">${categoryOptions('General')}</select>
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <button class="btn-small btn-green" onclick="saveChannelFeed('${encUrl}')">Save to My Feeds</button>
+        <button class="btn-small" onclick="document.getElementById('channelResult').style.display='none'">No thanks</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('channelResult').style.display = 'block';
+}
+
+document.getElementById('channelQuery').addEventListener('keydown', e => {
+  if (e.key === 'Enter') findChannel();
+});
+
+// ─── Trend presets ───
+
+// ─── Watch Queue ───
+
+async function queueItem(storeId, btn) {
+  const r = window._resultStore[storeId];
+  if (!r) return;
+  try {
+    await fetch(`${API_BASE}/queue/add`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        url: r.url,
+        title: r.title || r.url,
+        verdict: r.verdict,
+        category: r._category || null,
+      })
+    });
+    if (btn) {
+      btn.textContent = '✓ Queued';
+      btn.disabled = true;
+    }
+  } catch (e) { /* silent */ }
+}
+
+async function loadQueue() {
+  setLoading('queue-loading', true);
+  document.getElementById('queue-results').innerHTML = '';
+
+  try {
+    const resp = await fetch(`${API_BASE}/queue`);
+    const items = await resp.json();
+    if (!items || items.length === 0) {
+      document.getElementById('queue-results').innerHTML =
+        '<div class="empty-state">Queue is empty — use the + Queue button on any result card.</div>';
+    } else {
+      document.getElementById('queue-results').innerHTML = items.map(renderQueueItem).join('');
+    }
+  } catch (e) {
+    document.getElementById('queue-results').innerHTML =
+      '<div class="empty-state">Failed to load queue. Is uvicorn running?</div>';
+  }
+
+  setLoading('queue-loading', false);
+}
+
+function renderQueueItem(item) {
+  const v = (item.verdict || '').toLowerCase();
+  const badgeHtml = item.verdict
+    ? `<span class="badge ${v}" style="font-size:10px; padding:1px 6px;">${item.verdict}</span>` : '';
+  const catHtml = item.category
+    ? `<span class="category-badge">${esc(item.category)}</span>` : '';
+
+  return `
+    <div class="queue-item" id="qi-${item.id}">
+      <div class="queue-item-body">
+        <div class="queue-item-title">
+          <a href="${esc(item.url)}" target="_blank" style="color:#e4e4e7; text-decoration:none;">${esc(item.title || item.url)}</a>
+        </div>
+        <div class="queue-item-meta" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px;">
+          ${badgeHtml}${catHtml}
+          <span style="color:#3f3f46;">${esc(item.url)}</span>
+        </div>
+      </div>
+      <button class="btn-small btn-red" onclick="removeFromQueue(${item.id})" style="flex-shrink:0; align-self:center;">Remove</button>
+    </div>
+  `;
+}
+
+async function removeFromQueue(id) {
+  try {
+    await fetch(`${API_BASE}/queue/${id}`, { method: 'DELETE' });
+    const el = document.getElementById(`qi-${id}`);
+    if (el) el.remove();
+    if (!document.querySelector('.queue-item')) {
+      document.getElementById('queue-results').innerHTML =
+        '<div class="empty-state">Queue is empty.</div>';
+    }
+  } catch (e) { /* silent */ }
+}
+
+async function clearQueue() {
+  if (!confirm('Clear the entire watch queue?')) return;
+  try {
+    await fetch(`${API_BASE}/queue/clear`, { method: 'POST' });
+    document.getElementById('queue-results').innerHTML =
+      '<div class="empty-state">Queue cleared.</div>';
+  } catch (e) { /* silent */ }
+}
+
+// ─── Trend presets ───
+
+function setTrend(topic) {
+  const input = document.getElementById('trendTopic');
+  if (input) {
+    input.value = topic;
+    input.focus();
+  }
+}
+
+function renderTrendCard(d) {
+  const concernClass = (d.concern_tier || '').toLowerCase().includes('well') ? 'well-founded'
+    : (d.concern_tier || '').toLowerCase().includes('mixed') ? 'mixed'
+    : (d.concern_tier || '').toLowerCase().includes('overblown') ? 'overblown'
+    : 'amplified';
+
+  const storeId = 'r-' + Math.random().toString(36).slice(2);
+  window._resultStore[storeId] = d;
+
+  return `
+    <div class="trend-card">
+      <h3>${esc(d.topic)}</h3>
+      <div style="margin-bottom: 16px;">
+        <span class="concern-badge ${concernClass}">${esc(d.concern_tier)}</span>
+        <span class="badge watch">${esc(d.confidence)} confidence</span>
+      </div>
+
+      <div class="trend-row">
+        <div class="trend-label">Summary</div>
+        <div class="trend-value">${esc(d.summary)}</div>
+      </div>
+
+      <div class="trend-row">
+        <div class="trend-label">Supporting Evidence</div>
+        <div class="trend-value">${esc(d.what_evidence_supports)}</div>
+      </div>
+
+      <div class="trend-row">
+        <div class="trend-label">Contradicting Evidence</div>
+        <div class="trend-value">${esc(d.what_evidence_doesnt_support)}</div>
+      </div>
+
+      <div class="trend-row">
+        <div class="trend-label">Genuine vs Amplified</div>
+        <div class="trend-value">${esc(d.genuine_vs_amplified)}</div>
+      </div>
+
+      <div class="trend-row">
+        <div class="trend-label">Useful Action</div>
+        <div class="trend-value">${esc(d.useful_action)}</div>
+      </div>
+
+      <div class="trend-row" style="border-top: 1px solid #27272a; padding-top: 12px; margin-top: 4px;">
+        <div class="trend-label">Question Worth Sitting With</div>
+        <div class="trend-value" style="color: #a78bfa; font-style: italic;">${esc(d.socratic_question)}</div>
+      </div>
+
+      <div class="card-actions" style="border-top: 1px solid #1e1e22; padding-top: 12px; margin-top: 12px;">
+        <button class="btn-small" onclick="openShareModal('trend','${storeId}')">Share this assessment</button>
+      </div>
+    </div>
+  `;
+}
+</script>
+
+</body>
+</html>

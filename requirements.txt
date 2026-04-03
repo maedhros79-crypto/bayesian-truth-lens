@@ -1,7 +1,14 @@
-anthropic>=0.25.0
-streamlit>=1.35.0
-fastapi>=0.110.0
-uvicorn>=0.29.0
-resend>=0.7.0
-python-multipart>=0.0.9
-tavily-python>=0.3.0
+# RCP Unified — all dependencies
+fastapi
+uvicorn
+anthropic
+youtube-transcript-api
+trafilatura
+newspaper3k
+python-dotenv
+pydantic
+httpx
+feedparser
+resend
+python-multipart
+tavily-python
