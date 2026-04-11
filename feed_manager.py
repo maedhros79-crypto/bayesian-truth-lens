@@ -240,27 +240,31 @@ async def score_feed_items(
     # Hard cap at total_limit
     items = items[:total_limit]
 
+    # Limit concurrency to avoid Anthropic 50 req/min rate limit
+    semaphore = asyncio.Semaphore(5)
+
     async def score_one(item: dict) -> ScoreResult:
         url = item["url"]
         cached = get_cached_score(url)
         if cached:
             return attach_reputation(cached)
 
-        summary = item.get("summary", "")
-        if summary and len(summary) > 100:
-            fetch_result = FetchResult(
-                text=summary,
-                title=item.get("title", ""),
-                content_type="article",
-                fetch_method="feed_summary",
-            )
-        else:
-            fetch_result = fetch_content(url)
+        async with semaphore:
+            summary = item.get("summary", "")
+            if summary and len(summary) > 100:
+                fetch_result = FetchResult(
+                    text=summary,
+                    title=item.get("title", ""),
+                    content_type="article",
+                    fetch_method="feed_summary",
+                )
+            else:
+                fetch_result = fetch_content(url)
 
-        result = await score_content(url, fetch_result, api_key)
-        if result.verdict:
-            cache_score(result)
-        return attach_reputation(result)
+            result = await score_content(url, fetch_result, api_key)
+            if result.verdict:
+                cache_score(result)
+            return attach_reputation(result)
 
     results = list(await asyncio.gather(*[score_one(item) for item in items]))
 
